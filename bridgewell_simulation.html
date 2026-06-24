@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Implementation Meeting · Module 11</title>
+<style>
+:root{--font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#0d1424}
+body{font-family:var(--font-sans);display:flex;align-items:flex-start;justify-content:center;min-height:100vh}
+#app{width:100%;max-width:920px;min-height:580px;font-family:var(--font-sans);background:#1a2744;box-shadow:0 10px 40px rgba(0,0,0,.5);overflow:hidden;border-radius:4px}
+.screen{display:none;width:100%;min-height:580px}
+.screen.active{display:flex}
+
+/* AVERY SCREENS */
+.avery-screen{flex-direction:column;align-items:center;justify-content:center;padding:2.5rem 1.5rem;text-align:center;background:#1a2744;min-height:580px}
+.avery-photo{width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid #4F81BD;margin:0 auto 1rem;display:block}
+.avery-photo-ph{width:90px;height:90px;border-radius:50%;background:#2d3f6e;border:3px solid #4F81BD;margin:0 auto 1rem;display:flex;align-items:center;justify-content:center;color:#a0b4cc;font-size:.7rem;text-align:center}
+.avery-label{color:#a0b4cc;font-size:.75rem;letter-spacing:.06em;margin-bottom:.2rem}
+.avery-title{color:#fff;font-size:1.15rem;font-weight:600;margin-bottom:.2rem}
+.avery-sub{color:#7a90b0;font-size:.8rem;margin-bottom:1.2rem}
+.avery-quote{color:#d0dcea;font-size:.9rem;line-height:1.8;max-width:500px;margin:0 auto .9rem;font-style:italic}
+.avery-body{color:#b0c4d8;font-size:.83rem;line-height:1.75;max-width:500px;margin:0 auto 1.5rem}
+.btn-primary{background:#4F81BD;color:#fff;border:none;border-radius:8px;padding:.65rem 1.8rem;font-size:.9rem;cursor:pointer;font-weight:500;transition:background .15s}
+.btn-primary:hover,.btn-primary:focus{background:#3a6da8;outline:2px solid #7ab0e0;outline-offset:2px}
+
+/* AUDIO BAR */
+.audio-wrap{display:flex;align-items:center;gap:.6rem;max-width:360px;margin:0 auto 1.1rem}
+.audio-play{width:32px;height:32px;border-radius:50%;background:#4F81BD;border:2px solid transparent;cursor:pointer;color:#fff;font-size:.8rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
+.audio-play:hover,.audio-play:focus{background:#3a6da8;outline:2px solid #7ab0e0;outline-offset:2px}
+.audio-track{flex:1;height:4px;background:rgba(255,255,255,.15);border-radius:2px;cursor:pointer;position:relative}
+.audio-fill{height:100%;background:#4F81BD;border-radius:2px;width:0%;transition:width .25s linear}
+.audio-time{color:#7a90b0;font-size:.7rem;min-width:34px;text-align:right}
+.audio-error{color:#e07a7a;font-size:.72rem;margin-top:.3rem;display:none}
+.transcript-btn{background:none;border:1px solid #3a5070;color:#7a90b0;border-radius:6px;padding:.3rem .7rem;font-size:.72rem;cursor:pointer;margin-top:.4rem}
+.transcript-btn:hover,.transcript-btn:focus{border-color:#4F81BD;color:#a0c0e0;outline:2px solid #4F81BD;outline-offset:2px}
+.transcript-box{background:#0d1a30;border:1px solid #2d3f6e;border-radius:6px;padding:.75rem 1rem;font-size:.78rem;color:#b0c4d8;line-height:1.65;max-width:500px;margin:.5rem auto 0;text-align:left;display:none}
+
+/* HUB */
+.hub-screen{flex-direction:column;align-items:center;justify-content:center;padding:1.8rem 1rem;background:#1a2744;min-height:580px;position:relative}
+.hub-title{color:#fff;font-size:1rem;font-weight:600;margin-bottom:.25rem}
+.hub-sub{color:#7a90b0;font-size:.78rem;margin-bottom:.9rem;text-align:center}
+.prog-wrap{width:100%;max-width:500px;height:5px;background:#2d3f6e;border-radius:3px;margin-bottom:.35rem}
+.prog-fill{height:100%;border-radius:3px;background:#4F81BD;transition:width .4s}
+.prog-label{color:#7a90b0;font-size:.72rem;margin-bottom:1.4rem}
+.char-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:.7rem;width:100%;max-width:640px}
+@media(max-width:600px){.char-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:380px){.char-grid{grid-template-columns:repeat(2,1fr)}}
+.char-card{border-radius:10px;padding:.85rem .5rem;text-align:center;cursor:pointer;transition:transform .15s,box-shadow .15s;border:2px solid transparent;position:relative}
+.char-card:hover:not(.done),.char-card:focus:not(.done){transform:translateY(-3px);box-shadow:0 4px 12px rgba(0,0,0,.4);outline:none}
+.char-card:focus:not(.done){outline:2px solid #fff;outline-offset:2px}
+.char-card.done{opacity:.5;cursor:default}
+.char-avatar{width:48px;height:48px;border-radius:50%;margin:0 auto .45rem;object-fit:cover;border:2px solid rgba(255,255,255,.25);display:block}
+.char-avatar-ph{width:48px;height:48px;border-radius:50%;margin:0 auto .45rem;display:flex;align-items:center;justify-content:center;font-weight:600;color:#fff;font-size:.85rem;border:2px solid rgba(255,255,255,.2)}
+.char-name{font-size:.74rem;font-weight:600;color:#fff}
+.char-role{font-size:.63rem;color:rgba(255,255,255,.5);margin-top:.1rem;line-height:1.3}
+.done-badge{position:absolute;top:5px;right:5px;width:16px;height:16px;border-radius:50%;background:#4F81BD;color:#fff;font-size:.6rem;display:flex;align-items:center;justify-content:center}
+.reset-btn{margin-top:1.5rem;background:none;border:1px solid #3a5070;color:#7a90b0;border-radius:6px;padding:.4rem 1rem;font-size:.75rem;cursor:pointer}
+.reset-btn:hover,.reset-btn:focus{border-color:#4F81BD;color:#a0c0e0;outline:2px solid #4F81BD;outline-offset:2px}
+
+/* SPLIT SCREENS */
+.split-screen{flex-direction:row;min-height:580px}
+@media(max-width:700px){.split-screen{flex-direction:column}}
+.s-left{flex:0 0 48%;position:relative;overflow:hidden;background:#0d1520;min-height:280px}
+@media(max-width:700px){.s-left{flex:0 0 220px}}
+.s-left-img{width:100%;height:100%;object-fit:cover;display:block}
+.s-left-color{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem}
+.char-portrait{width:110px;height:110px;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,.3);margin-bottom:1rem;display:block}
+.char-portrait-ph{width:110px;height:110px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:1.4rem;border:3px solid rgba(255,255,255,.3);margin-bottom:1rem}
+.char-name-large{color:#fff;font-size:1.1rem;font-weight:600;margin-bottom:.2rem}
+.char-role-large{color:rgba(255,255,255,.6);font-size:.78rem}
+
+.bubble{position:absolute;top:.9rem;left:.9rem;right:.9rem;background:rgba(15,25,50,.88);border-left:3px solid #4F81BD;color:#d0dcea;border-radius:8px;padding:.6rem .8rem;font-size:.76rem;line-height:1.5;font-style:italic;max-width:240px}
+.family-flag{position:absolute;bottom:.8rem;left:.8rem;background:rgba(150,70,10,.9);border-radius:7px;padding:.5rem .7rem;font-size:.71rem;color:#fff;line-height:1.4;max-width:240px}
+.family-flag strong{display:block;font-size:.65rem;letter-spacing:.04em;margin-bottom:.12rem;opacity:.85}
+
+.s-right{flex:1;background:#edf0f4;padding:1.2rem 1.1rem;display:flex;flex-direction:column;justify-content:space-between;overflow-y:auto}
+.scene-ctx{font-size:.79rem;color:#444;line-height:1.6;margin-bottom:.75rem;padding-bottom:.75rem;border-bottom:1px solid #ced3dc}
+.q-label{font-size:.68rem;font-weight:600;color:#888;letter-spacing:.05em;margin-bottom:.3rem;text-transform:uppercase}
+.q-text{font-size:.86rem;font-weight:600;color:#1a2744;line-height:1.5;margin-bottom:.85rem}
+.choices{display:flex;flex-direction:column;gap:.55rem}
+.choice-btn{display:flex;align-items:flex-start;gap:.6rem;background:none;border:2px solid transparent;border-radius:6px;cursor:pointer;text-align:left;padding:.35rem .4rem;transition:border-color .15s}
+.choice-btn:hover,.choice-btn:focus-visible{border-color:#4F81BD;outline:none;background:rgba(79,129,189,.06)}
+.choice-btn.selected{border-color:#4F81BD;background:rgba(79,129,189,.12)}
+.cbullet{width:24px;height:24px;min-width:24px;border-radius:50%;background:#9ab0cc;transition:background .15s;margin-top:1px;flex-shrink:0}
+.choice-btn:hover .cbullet,.choice-btn:focus-visible .cbullet{background:#4F81BD}
+.choice-btn.selected .cbullet{background:#4F81BD;box-shadow:inset 0 0 0 3px #fff}
+.ctext{font-size:.8rem;color:#222;line-height:1.5}
+
+/* CHAR INTRO SCREEN */
+.char-intro-screen{flex-direction:row;min-height:580px}
+@media(max-width:700px){.char-intro-screen{flex-direction:column}}
+.ci-audio-bar{position:absolute;bottom:0;left:0;right:0;background:rgba(15,25,50,.92);border-top:2px solid;padding:.6rem .9rem;display:flex;align-items:center;gap:.6rem}
+.ci-play{width:26px;height:26px;border-radius:50%;border:none;cursor:pointer;color:#fff;font-size:.72rem;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ci-play:hover,.ci-play:focus{opacity:.85;outline:2px solid #fff;outline-offset:2px}
+.ci-track{flex:1;height:3px;background:rgba(255,255,255,.2);border-radius:2px;cursor:pointer}
+.ci-fill{height:100%;border-radius:2px;width:0%}
+.ci-time{color:rgba(255,255,255,.45);font-size:.66rem;min-width:28px}
+
+/* FEEDBACK */
+.fb-screen{flex-direction:row;min-height:580px}
+@media(max-width:700px){.fb-screen{flex-direction:column}}
+.fb-left{flex:0 0 48%;position:relative;overflow:hidden;background:#0d1520;min-height:240px}
+@media(max-width:700px){.fb-left{flex:0 0 200px}}
+.fb-left-img{width:100%;height:100%;object-fit:cover;display:block}
+.fb-left-color{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.consequence-banner{position:absolute;bottom:0;left:0;right:0;background:rgba(120,20,20,.92);padding:.7rem .9rem;font-size:.74rem;color:#fff;line-height:1.5}
+.consequence-banner strong{display:block;font-size:.64rem;letter-spacing:.04em;margin-bottom:.12rem}
+.avery-interrupt{position:absolute;bottom:0;left:0;right:0;background:rgba(15,25,50,.94);border-top:2px solid #4F81BD;padding:.7rem .9rem;font-size:.74rem;color:#d0dcea;line-height:1.5;font-style:italic}
+.avery-interrupt strong{display:block;font-size:.64rem;color:#4F81BD;letter-spacing:.04em;margin-bottom:.12rem;font-style:normal}
+.fb-right{flex:1;background:#edf0f4;padding:1.2rem 1.1rem;display:flex;flex-direction:column;justify-content:space-between;overflow-y:auto}
+.fb-chosen{font-size:.8rem;color:#333;font-weight:500;margin-bottom:.6rem;line-height:1.5;padding:.5rem .7rem;background:#dde2eb;border-radius:6px;border-left:3px solid #9ab0cc}
+.fb-chosen.correct{background:#e7f2da;border-left:4px solid #2f7d1f;color:#234016}
+.fb-chosen.wrong{background:#f7dede;border-left:4px solid #c0392b;color:#5a1f18}
+.fb-chosen.wrong::before{content:'\2717  INCORRECT';display:block;font-size:.6rem;font-weight:700;letter-spacing:.06em;color:#c0392b;margin-bottom:.25rem}
+.fb-chosen.correct::before{content:'\2713  CORRECT';display:block;font-size:.6rem;font-weight:700;letter-spacing:.06em;color:#2f7d1f;margin-bottom:.25rem}
+.fb-lbl{font-size:.68rem;font-weight:600;color:#888;letter-spacing:.05em;margin-bottom:.22rem;text-transform:uppercase}
+.fb-text{font-size:.8rem;color:#333;line-height:1.6;margin-bottom:.7rem}
+.fb-takeaway{font-size:.8rem;font-weight:600;font-style:italic;color:#1D3D0F;line-height:1.6;margin-bottom:.9rem;padding:.5rem .7rem;border-left:3px solid #1D3D0F;background:#eaf3de;border-radius:0 6px 6px 0}
+.fb-actions{display:flex;flex-direction:column;gap:.45rem}
+.fb-btn{display:flex;align-items:center;gap:.6rem;background:none;border:2px solid transparent;border-radius:6px;cursor:pointer;padding:.25rem .35rem;transition:border-color .15s}
+.fb-btn:hover,.fb-btn:focus-visible{border-color:#4F81BD;outline:none;background:rgba(79,129,189,.06)}
+.fbullet{width:24px;height:24px;min-width:24px;border-radius:50%;background:#9ab0cc;transition:background .15s;flex-shrink:0}
+.fb-btn:hover .fbullet,.fb-btn:focus-visible .fbullet{background:#4F81BD}
+.fb-btn-text{font-size:.8rem;color:#222}
+
+/* LIVE REGION */
+#live-region{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+
+/* EXIT */
+.exit-screen{flex-direction:column;align-items:center;justify-content:center;padding:2.5rem 1.5rem;text-align:center;background:#1a2744;min-height:580px}
+.exit-ring{width:68px;height:68px;border-radius:50%;border:3px solid #4F81BD;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;color:#4F81BD;font-size:1.5rem}
+</style>
+</head>
+<body>
+
+<div id="app" role="main">
+<div aria-live="polite" aria-atomic="true" id="live-region"></div>
+
+<!-- INTRO -->
+<div class="screen avery-screen active" id="screen-intro" role="region" aria-label="Course introduction">
+  <img class="avery-photo" src="assets/avery.png" alt="Dr. Patricia Avery" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+  <div class="avery-photo-ph" style="display:none">DA</div>
+  <div class="avery-label">DR. PATRICIA AVERY · BRIDGEWELL COMMUNITY HEALTH</div>
+  <div class="avery-title">The Implementation Meeting</div>
+  <div class="avery-sub">Module 11 · ALH 4105</div>
+  <div class="audio-wrap" id="aw-intro">
+    <button class="audio-play" id="btn-avery_intro" onclick="toggleAudio('avery_intro')" aria-label="Play Dr. Avery introduction">▶</button>
+    <div class="audio-track" role="progressbar" aria-label="Audio progress" onclick="seekAudio(event,'avery_intro')"><div class="audio-fill" id="fill-avery_intro"></div></div>
+    <span class="audio-time" id="time-avery_intro" aria-live="off">0:00</span>
+  </div>
+  <div class="audio-error" id="err-avery_intro">Audio unavailable — read transcript below</div>
+  <button class="transcript-btn" onclick="toggleTranscript('tr-intro')" aria-expanded="false" aria-controls="tr-intro">Show transcript</button>
+  <div class="transcript-box" id="tr-intro" role="note">Thursday. Marcus came back with the plan. Three pages on the table — a role chart, a task sequence, and a timeline. Every person in this room is going to find something Marcus missed — and what the team does with those findings will determine whether the Rivera-Washington family ever sees this program go live. Choose a team member. Step into their perspective. Decide what you would do.</div>
+  <div class="avery-quote" style="margin-top:.9rem">"Thursday. Marcus came back with the plan."</div>
+  <div class="avery-body">Three pages on the table. A role chart. A task sequence. A timeline. Every person in this room is going to find something Marcus missed — and what the team does with those findings will determine whether the Rivera-Washington family ever sees this program go live.<br><br>Choose a team member. Step into their perspective. Decide what you would do.</div>
+  <button class="btn-primary" onclick="showHub()" style="margin-top:.5rem">Enter the room →</button>
+</div>
+
+<!-- HUB -->
+<div class="screen hub-screen" id="screen-hub" role="region" aria-label="Character selection">
+  <div class="hub-title">The Bridgewell Implementation Meeting</div>
+  <div class="hub-sub">Select a team member to explore their perspective</div>
+  <div class="prog-wrap"><div class="prog-fill" id="prog"></div></div>
+  <div class="prog-label" id="prog-label" aria-live="polite">0 of 5 perspectives completed</div>
+  <div class="char-grid" role="list">
+    <div class="char-card" id="card-marcus" style="background:#1e2e4a;border-color:#4F81BD" onclick="startChar('marcus')" onkeydown="if(event.key==='Enter'||event.key===' ')startChar('marcus')" tabindex="0" role="listitem button" aria-label="Marcus Collins, CMA, Implementation Lead">
+      <img class="char-avatar" src="assets/marcus.png" alt="Marcus Collins" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="char-avatar-ph" style="background:#4F81BD;display:none">MC</div>
+      <div class="char-name">Marcus</div><div class="char-role">CMA · Implementation Lead</div>
+    </div>
+    <div class="char-card" id="card-jordan" style="background:#18291a;border-color:#4FA85C" onclick="startChar('jordan')" onkeydown="if(event.key==='Enter'||event.key===' ')startChar('jordan')" tabindex="0" role="listitem button" aria-label="Jordan Kim, Nutritionist, DPP Lead">
+      <img class="char-avatar" src="assets/jordan.png" alt="Jordan Kim" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="char-avatar-ph" style="background:#4FA85C;display:none">JK</div>
+      <div class="char-name">Jordan</div><div class="char-role">Nutritionist · DPP Lead</div>
+    </div>
+    <div class="char-card" id="card-nova" style="background:#261a26;border-color:#CF95C7" onclick="startChar('nova')" onkeydown="if(event.key==='Enter'||event.key===' ')startChar('nova')" tabindex="0" role="listitem button" aria-label="Nova Patel, Dental Hygienist">
+      <img class="char-avatar" src="assets/nova.png" alt="Nova Patel" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="char-avatar-ph" style="background:#CF95C7;color:#3a1a38;display:none">NP</div>
+      <div class="char-name">Nova</div><div class="char-role">Dental Hygienist · RDH</div>
+    </div>
+    <div class="char-card" id="card-elena" style="background:#1e1a26;border-color:#B3A2C7" onclick="startChar('elena')" onkeydown="if(event.key==='Enter'||event.key===' ')startChar('elena')" tabindex="0" role="listitem button" aria-label="Elena Petrova, Respiratory Therapist">
+      <img class="char-avatar" src="assets/elena.png" alt="Elena Petrova" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="char-avatar-ph" style="background:#B3A2C7;color:#2a2038;display:none">EP</div>
+      <div class="char-name">Elena</div><div class="char-role">Respiratory Therapist</div>
+    </div>
+    <div class="char-card" id="card-alicia" style="background:#261808;border-color:#F79646" onclick="startChar('alicia')" onkeydown="if(event.key==='Enter'||event.key===' ')startChar('alicia')" tabindex="0" role="listitem button" aria-label="Alicia Reyes, PTA, Co-Facilitator">
+      <img class="char-avatar" src="assets/alicia.png" alt="Alicia Reyes" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="char-avatar-ph" style="background:#F79646;color:#2e1800;display:none">AR</div>
+      <div class="char-name">Alicia</div><div class="char-role">PTA · Co-Facilitator</div>
+    </div>
+  </div>
+  <button class="reset-btn" onclick="confirmReset()" aria-label="Reset simulation and start over">↺ Start over</button>
+  <button onclick="show('screen-exit')" aria-label="Skip to Dr. Avery's debrief and finish" style="position:absolute;right:1.1rem;bottom:1.1rem;background:#2d3f6e;color:#fff;border:1px solid #43578a;border-radius:8px;padding:.5rem 1rem;font-size:.78rem;font-weight:500;cursor:pointer" onmouseover="this.style.background='#37487a'" onmouseout="this.style.background='#2d3f6e'">Dr. Avery's debrief →</button>
+</div>
+
+<!-- CHAR INTRO -->
+<div class="screen char-intro-screen" id="screen-char-intro" role="region" aria-label="Character introduction">
+  <div class="s-left" id="ci-left">
+    <div class="s-left-color" id="ci-color-panel">
+      <img class="char-portrait" id="ci-portrait" alt="" onerror="this.style.display='none';document.getElementById('ci-portrait-ph').style.display='flex'">
+      <div class="char-portrait-ph" id="ci-portrait-ph" style="display:none"></div>
+      <div class="char-name-large" id="ci-name-large"></div>
+      <div class="char-role-large" id="ci-role-large"></div>
+    </div>
+    <div class="ci-audio-bar" id="ci-bar">
+      <button class="ci-play" id="ci-play-btn" onclick="toggleAudio('char_intro')" aria-label="Play character introduction audio">▶</button>
+      <div class="ci-track" onclick="seekAudio(event,'char_intro')" aria-label="Audio seek bar"><div class="ci-fill" id="fill-char_intro"></div></div>
+      <span class="ci-time" id="time-char_intro">0:00</span>
+    </div>
+  </div>
+  <div class="s-right">
+    <div>
+      <div class="q-label" id="ci-role-label"></div>
+      <div class="q-text" id="ci-intro-text" style="font-size:.95rem;line-height:1.75;color:#1a2744;font-weight:400"></div>
+      <div class="audio-error" id="err-char_intro" style="color:#c05050;font-size:.74rem;margin-top:.5rem">Audio unavailable</div>
+      <button class="transcript-btn" id="ci-transcript-btn" onclick="toggleTranscript('tr-char')" aria-expanded="false" aria-controls="tr-char" style="margin-top:.6rem">Show transcript</button>
+      <div class="transcript-box" id="tr-char" role="note" style="margin-top:.5rem"></div>
+    </div>
+    <div style="margin-top:1.2rem">
+      <button class="btn-primary" style="background:#1a2744;font-size:.83rem" onclick="goToQ1()">Begin scenario →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Q1 -->
+<div class="screen split-screen" id="screen-q1" role="region" aria-label="Question 1">
+  <div class="s-left">
+    <img class="s-left-img" id="q1-scene-img" alt="" onerror="this.style.display='none';document.getElementById('q1-color-panel').style.display='flex'">
+    <video class="s-left-img" id="q1-scene-vid" style="display:none" muted loop playsinline aria-hidden="true"></video>
+    <div class="s-left-color" id="q1-color-panel" style="display:none">
+      <img class="char-portrait" id="q1-portrait" alt="">
+      <div class="char-name-large" id="q1-char-name"></div>
+    </div>
+    <div class="bubble" id="q1-bubble"></div>
+    <div class="family-flag" id="q1-family" style="display:none"><strong>RIVERA-WASHINGTON FAMILY</strong><span id="q1-family-text"></span></div>
+  </div>
+  <div class="s-right">
+    <div>
+      <div class="scene-ctx" id="q1-ctx"></div>
+      <div class="q-label">Question 1 of 2</div>
+      <div class="q-text" id="q1-text"></div>
+      <div class="choices" id="q1-choices" role="group" aria-label="Answer choices"></div>
+    </div>
+  </div>
+</div>
+
+<!-- FB1 -->
+<div class="screen fb-screen" id="screen-fb1" role="region" aria-label="Feedback">
+  <div class="fb-left">
+    <img class="fb-left-img" id="fb1-scene-img" alt="" onerror="this.style.display='none';document.getElementById('fb1-color').style.display='flex'">
+    <video class="fb-left-img" id="fb1-scene-vid" style="display:none" muted loop playsinline aria-hidden="true"></video>
+    <div class="fb-left-color" id="fb1-color" style="display:none;background:#1a2744">
+      <img class="char-portrait" id="fb1-portrait" alt="">
+    </div>
+    <div class="consequence-banner" id="fb1-consequence" style="display:none" role="alert"><strong>CONSEQUENCE · RIVERA-WASHINGTON FAMILY</strong><span id="fb1-consequence-text"></span></div>
+    <div class="avery-interrupt" id="fb1-avery" style="display:none" role="note"><strong>DR. AVERY</strong><span id="fb1-avery-text"></span></div>
+  </div>
+  <div class="fb-right">
+    <div>
+      <div class="fb-chosen" id="fb1-chosen"></div>
+      <div class="fb-lbl">Feedback</div>
+      <div class="fb-text" id="fb1-text"></div>
+      <div class="fb-takeaway" id="fb1-takeaway" style="display:none" role="note"></div>
+    </div>
+    <div class="fb-actions" id="fb1-actions" role="group" aria-label="Next steps"></div>
+  </div>
+</div>
+
+<!-- Q2 -->
+<div class="screen split-screen" id="screen-q2" role="region" aria-label="Question 2">
+  <div class="s-left">
+    <img class="s-left-img" id="q2-scene-img" alt="" onerror="this.style.display='none';document.getElementById('q2-color-panel').style.display='flex'">
+    <video class="s-left-img" id="q2-scene-vid" style="display:none" muted loop playsinline aria-hidden="true"></video>
+    <div class="s-left-color" id="q2-color-panel" style="display:none">
+      <img class="char-portrait" id="q2-portrait" alt="">
+      <div class="char-name-large" id="q2-char-name"></div>
+    </div>
+    <div class="bubble" id="q2-bubble"></div>
+    <div class="family-flag" id="q2-family" style="display:none"><strong>RIVERA-WASHINGTON FAMILY</strong><span id="q2-family-text"></span></div>
+  </div>
+  <div class="s-right">
+    <div>
+      <div class="scene-ctx" id="q2-ctx"></div>
+      <div class="q-label">Question 2 of 2</div>
+      <div class="q-text" id="q2-text"></div>
+      <div class="choices" id="q2-choices" role="group" aria-label="Answer choices"></div>
+    </div>
+  </div>
+</div>
+
+<!-- FB2 -->
+<div class="screen fb-screen" id="screen-fb2" role="region" aria-label="Feedback">
+  <div class="fb-left">
+    <img class="fb-left-img" id="fb2-scene-img" alt="" onerror="this.style.display='none';document.getElementById('fb2-color').style.display='flex'">
+    <video class="fb-left-img" id="fb2-scene-vid" style="display:none" muted loop playsinline aria-hidden="true"></video>
+    <div class="fb-left-color" id="fb2-color" style="display:none;background:#1a2744">
+      <img class="char-portrait" id="fb2-portrait" alt="">
+    </div>
+    <div class="consequence-banner" id="fb2-consequence" style="display:none" role="alert"><strong>CONSEQUENCE · RIVERA-WASHINGTON FAMILY</strong><span id="fb2-consequence-text"></span></div>
+    <div class="avery-interrupt" id="fb2-avery" style="display:none" role="note"><strong>DR. AVERY</strong><span id="fb2-avery-text"></span></div>
+  </div>
+  <div class="fb-right">
+    <div>
+      <div class="fb-chosen" id="fb2-chosen"></div>
+      <div class="fb-lbl">Feedback</div>
+      <div class="fb-text" id="fb2-text"></div>
+      <div class="fb-takeaway" id="fb2-takeaway" style="display:none" role="note"></div>
+    </div>
+    <div class="fb-actions" id="fb2-actions" role="group" aria-label="Next steps"></div>
+  </div>
+</div>
+
+<!-- EXIT -->
+<div class="screen exit-screen" id="screen-exit" role="region" aria-label="Simulation complete">
+  <div class="exit-ring" aria-hidden="true">✓</div>
+  <div class="avery-label" style="color:#7a90b0;margin-bottom:.3rem">DR. PATRICIA AVERY</div>
+  <div class="avery-title" style="color:#fff;margin-bottom:.3rem">Dr. Avery's Debrief</div>
+  <div class="avery-sub" style="margin-bottom:.9rem">Module 11 · Implementation Meeting</div>
+  <div class="audio-wrap">
+    <button class="audio-play" id="btn-avery_exit" onclick="toggleAudio('avery_exit')" aria-label="Play Dr. Avery closing remarks">▶</button>
+    <div class="audio-track" onclick="seekAudio(event,'avery_exit')" aria-label="Audio progress"><div class="audio-fill" id="fill-avery_exit"></div></div>
+    <span class="audio-time" id="time-avery_exit">0:00</span>
+  </div>
+  <div class="audio-error" id="err-avery_exit">Audio unavailable — read transcript below</div>
+  <button class="transcript-btn" onclick="toggleTranscript('tr-exit')" aria-expanded="false" aria-controls="tr-exit">Show transcript</button>
+  <div class="transcript-box" id="tr-exit" role="note">Bring the revised version Thursday. Every gap this team found — the flat timeline, the untested facilitator, the attendance threshold that was Bridgewell's internal program policy rather than a CDC requirement, the missing data safeguards — those were not minor edits. They were the difference between a program that launches and one that causes harm. Apply the Dr. Avery test to your own implementation plan. Does every activity have a named person? Does your timeline reflect actual dependencies? Does your fidelity plan protect what cannot be adapted away?</div>
+  <div class="avery-review" style="max-width:580px;margin:1.4rem auto 0;text-align:left">
+    <div style="color:#7a90b0;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;margin-bottom:.7rem;text-align:center">What this team caught — five gaps, five lessons</div>
+    <div style="display:flex;flex-direction:column;gap:.6rem">
+      <div style="display:flex;gap:.65rem;align-items:flex-start"><span style="width:9px;height:9px;border-radius:50%;background:#4F81BD;margin-top:.4rem;flex-shrink:0"></span><div style="color:#cdd8e6;font-size:.8rem;line-height:1.55"><strong style="color:#fff">Marcus (CMA):</strong> A timeline is only real when every activity has a named owner and a true sequence of dependencies — not a flat start date.</div></div>
+      <div style="display:flex;gap:.65rem;align-items:flex-start"><span style="width:9px;height:9px;border-radius:50%;background:#4FA85C;margin-top:.4rem;flex-shrink:0"></span><div style="color:#cdd8e6;font-size:.8rem;line-height:1.55"><strong style="color:#fff">Jordan (Nutritionist):</strong> Knowing the curriculum isn't the same as facilitating it — readiness is built through a pre-launch run-through, not a manual.</div></div>
+      <div style="display:flex;gap:.65rem;align-items:flex-start"><span style="width:9px;height:9px;border-radius:50%;background:#CF95C7;margin-top:.4rem;flex-shrink:0"></span><div style="color:#cdd8e6;font-size:.8rem;line-height:1.55"><strong style="color:#fff">Nova (RDH):</strong> Health data needs documented consent and handling safeguards in place before the first intake form is signed.</div></div>
+      <div style="display:flex;gap:.65rem;align-items:flex-start"><span style="width:9px;height:9px;border-radius:50%;background:#B3A2C7;margin-top:.4rem;flex-shrink:0"></span><div style="color:#cdd8e6;font-size:.8rem;line-height:1.55"><strong style="color:#fff">Elena (RRT):</strong> Every activity must match its intended outcome — a pamphlet isn't a clinical touchpoint, and integration isn't scope creep.</div></div>
+      <div style="display:flex;gap:.65rem;align-items:flex-start"><span style="width:9px;height:9px;border-radius:50%;background:#F79646;margin-top:.4rem;flex-shrink:0"></span><div style="color:#cdd8e6;font-size:.8rem;line-height:1.55"><strong style="color:#fff">Alicia (PTA):</strong> Readiness to lead is defined by observable, documented criteria — not a subjective judgment call.</div></div>
+    </div>
+  </div>
+  <div class="avery-body" style="margin-top:1.3rem">"Bring the revised version Thursday."<br><br>Every gap this team found — the flat timeline, the untested facilitator, Bridgewell's attendance policy, the missing data safeguards — those were not minor edits. They were the difference between a program that launches and one that causes harm.<br><br>Apply the Dr. Avery test to your own implementation plan. Does every activity have a named person? Does your timeline reflect actual dependencies? Does your fidelity plan protect what cannot be adapted away?</div>
+  <div style="max-width:520px;margin:1.5rem auto 0;display:flex;align-items:center;gap:.6rem;justify-content:center;padding:.7rem 1rem;background:rgba(79,168,92,.12);border:1px solid rgba(79,168,92,.4);border-radius:10px">
+    <span aria-hidden="true" style="color:#6fc47a;font-size:1rem;flex-shrink:0">✓</span>
+    <span style="color:#cdeacf;font-size:.82rem;line-height:1.5"><strong style="color:#fff">You've completed the Implementation Meeting.</strong> Continue in your lesson when you're ready.</span>
+  </div>
+  <div style="display:flex;gap:.8rem;margin-top:1.2rem;flex-wrap:wrap;justify-content:center">
+    <button class="btn-primary" onclick="confirmReset()">↺ Start over</button>
+    <button class="btn-primary" style="background:#2d3f6e" onclick="showHub()">Review hub</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+const PORTRAITS = {
+  alicia:'assets/alicia.png',
+  avery: 'assets/avery.png',
+  jordan:'assets/jordan.png',
+  marcus:'assets/marcus.png',
+  nova:  'assets/nova.png',
+  elena: 'assets/elena.png',
+};
+
+// Shared implementation-meeting conference room for every scene
+const SCENE_IMG = 'assets/conferenceroom.png';
+// Per-character, per-question scene assets. Anything omitted falls back to the
+// conference-room photo. String = image; {video:'...'} = muted looping video
+// (auto-falls back to the photo if it can't load).
+const SCENE_ASSETS = {
+  marcus:{ q1:'assets/scenes/marcus_meeting.png', q2:'assets/scenes/marcus_q2.png' },
+  jordan:{ q1:'assets/scenes/jordan_q1.png', q2:'assets/scenes/jordan_q2.png' },
+  nova:{ q1:'assets/scenes/nova_q1.png', q2:'assets/scenes/nova_q2.png' },
+  elena:{ q1:{img:'assets/scenes/elena_q1.png', pos:'100% center'}, q2:'assets/scenes/elena_q2.png' },
+  alicia:{ q1:'assets/scenes/alicia_q1.png', q2:'assets/scenes/alicia_q2.png' },
+};
+function sceneFor(name,qNum){
+  const e=(SCENE_ASSETS[name]||{})['q'+qNum];
+  if(e&&e.video)return{video:e.video,pos:e.pos};
+  if(typeof e==='string')return{img:e};
+  if(e&&e.img)return{img:e.img,pos:e.pos};
+  return{img:SCENE_IMG};
+}
+const SCENE_BLOB = {};  // cache of fetched object URLs (plays even when the host
+                        // doesn't support HTTP range requests, which stalls <video>)
+
+const AUDIO_URLS = {
+  avery_intro:'assets/audio/avery_intro.mp3',
+  marcus:     'assets/audio/marcus.mp3',
+  jordan:     'assets/audio/jordan.mp3',
+  nova:       'assets/audio/nova.mp3',
+  elena:      'assets/audio/elena.mp3',
+  alicia:     'assets/audio/alicia.mp3',
+  avery_exit: 'assets/audio/avery_exit.mp3',
+};
+
+const TRANSCRIPTS = {
+  avery_intro:'Thursday. Marcus came back with the plan. Three pages on the table — a role chart, a task sequence, and a timeline. Every person in this room is going to find something Marcus missed — and what the team does with those findings will determine whether the Rivera-Washington family ever sees this program go live. Choose a team member. Step into their perspective. Decide what you would do.',
+  marcus:'I\'ve been working on this for two weeks. Role assignments, task sequence, full timeline. I wanted to show Dr. Avery the complete picture before we started adjusting dates. I think it\'s solid. I think we\'re ready to move.',
+  jordan:'I\'m looking at the role assignment chart. Alicia is listed as my co-facilitator starting Week 2. I need to know she\'s ready — not just that she knows the material, but that she can actually stand in front of twelve people and hold a session together. Those are very different things.',
+  nova:'I\'ve been reading the fidelity section. Three activities in this plan collect personal health information — the intake screening, the biometric check-ins, the nutrition logs. I don\'t see a single documented safeguard for any of them. Before anyone walks through that door, we need to fix that.',
+  elena:'The respiratory component is listed as educational materials. A pamphlet at intake. That\'s it. DeShawn was diagnosed with asthma last year and has had zero structured follow-up since. If we hand him a brochure and call it a clinical touchpoint, we\'re not helping him — we\'re documenting that we tried.',
+  alicia:'I know this curriculum. I\'ve read every session guide twice. But Jordan just asked me if I\'ve ever facilitated a live DPP group and the honest answer is no. I know the material. I don\'t know yet what it feels like when the room doesn\'t go the way the guide says it should.',
+  avery_exit:'Bring the revised version Thursday. Every gap this team found — the flat timeline, the untested facilitator, Bridgewell\'s attendance threshold, the missing data safeguards — those were not minor edits. They were the difference between a program that launches and one that causes harm. Apply the Dr. Avery test to your own implementation plan. Does every activity have a named person? Does your timeline reflect actual dependencies? Does your fidelity plan protect what cannot be adapted away?',
+};
+
+const CHARS = {
+  marcus:{color:'#4F81BD',bgDark:'#1e2e4a',audioKey:'marcus',
+    intro:{role:'CMA · Implementation Point-Person',text:'I\'ve been working on this for two weeks. Role assignments, task sequence, full timeline. I wanted to show Dr. Avery the complete picture before we started adjusting dates. I think it\'s solid. I think we\'re ready to move.'},
+    q1:{bubble:'"I built the timeline to show the full vision. Once we see the scope, we can compress it if needed."',family:true,familyText:'Carmen Rivera signed up for the DPP cohort and arranged childcare for Tuesday mornings starting Week 1.',ctx:'Marcus presents his timeline. Every activity — partner outreach, intake screening, first DPP session, biometric check-ins — is scheduled to begin Week 1. Dr. Avery reads it and asks what week the community advisory board meets.',q:'Marcus defends the Week 1 start by saying the team can compress the timeline later once they see how things develop. What is the core problem with this reasoning?',
+    choices:[
+      {text:'A flexible timeline is actually better practice — rigid schedules fail when real-world conditions shift, so building in compression room is smart planning.',correct:false,consequence:'Carmen arranged childcare based on a Week 1 start that was never realistic. When outreach is delayed because the partner agreement isn\'t signed, she misses the enrollment window and drops off the waitlist.',feedback:'Flexibility is valuable — but this isn\'t flexibility, it\'s a timeline that ignores dependencies. Compression later assumes the sequence is right now, which it isn\'t.'},
+      {text:'The timeline front-loads activities that cannot begin until predecessor tasks are complete — outreach requires a signed partner agreement, which requires the advisory board to meet first.',correct:true,feedback:'Exactly. The sequence is the dates. If the advisory board meets Week 3, outreach cannot begin before Week 4. A timeline that ignores dependencies isn\'t optimistic — it\'s incorrect.',takeaway:'Implementation timelines must map actual task dependencies. A flat start date for every activity isn\'t a plan — it\'s a wish list. The sequence determines the dates.'},
+      {text:'Marcus should have gotten Dr. Avery\'s sign-off before finalizing any dates — the approval gap caused the problem, not the timeline structure itself.',correct:false,consequence:'Carmen arranged childcare based on a Week 1 start. When outreach is delayed, she misses the enrollment window and drops off the waitlist.',feedback:'Sign-off matters, but it doesn\'t fix a structurally flawed timeline. Approval of a bad plan is still a bad plan.'}
+    ]},
+    q2:{bubble:'"The attendance threshold is in Bridgewell\'s program design. It\'s what we committed to."',family:true,familyText:'DeShawn Washington works a day shift and a weekend rideshare job. He has exactly one free weekday evening per week.',ctx:'The team flags that Bridgewell\'s attendance threshold will produce dropouts in DeShawn\'s cohort — adults working two jobs who cannot guarantee a fixed weekly slot. Marcus says the threshold is non-negotiable because it\'s in the program design.',q:'Marcus treats Bridgewell\'s attendance threshold as a core program element that cannot be modified. What does the team\'s discussion reveal about this assumption?',
+    choices:[
+      {text:'The dropout concern is overstated — attendance thresholds exist for program-quality reasons and shouldn\'t be loosened without hard evidence.',correct:false,avery:'"Dismissing the concern doesn\'t make it wrong. The people closest to DeShawn\'s cohort see barriers the clinical design team can\'t. That input is data, not noise."',feedback:'The observation is grounded in direct knowledge of the population. It isn\'t an overstep — it\'s essential data.'},
+      {text:'Bridgewell\'s attendance threshold is a logistical element, not a core program element — the core is the cumulative coaching dose and peer accountability, which can be protected through flexible scheduling.',correct:true,feedback:'This is the distinction the team lands on. The core is behavioral: coaching dose, goal-setting, group accountability. Bridgewell\'s fixed weekly schedule is how that core is typically delivered — but it isn\'t the core itself. Documenting a planned adaptation with clear rationale protects fidelity without losing DeShawn.',takeaway:'Fidelity planning requires naming what is essential and what is logistical. Adapting the delivery method without compromising the core element is legitimate — but only when the team can articulate exactly what they\'re protecting and why.'},
+      {text:'The simplest fix is to create a separate low-attendance cohort for working adults — that way the standard cohort keeps its structure and DeShawn\'s group gets flexibility.',correct:false,avery:'"Two-tier design solves the scheduling problem and creates an equity problem. You\'ve built a program where working-class participants get a different version. Document the adaptation. Don\'t segregate the population."',feedback:'Separate cohorts introduce a structural equity issue. The team\'s solution — one cohort, documented adaptation, protected core — serves everyone without creating a two-tier experience.'}
+    ]}
+  },
+  jordan:{color:'#4FA85C',bgDark:'#18291a',audioKey:'jordan',
+    intro:{role:'Nutritionist · DPP Lead',text:'I\'m looking at the role assignment chart. Alicia is listed as my co-facilitator starting Week 2. I need to know she\'s ready — not just that she knows the material, but that she can actually stand in front of twelve people and hold a session together. Those are very different things.'},
+    q1:{bubble:'"She knows the curriculum thoroughly. That\'s actually more than most co-facilitators come in with."',family:true,familyText:'Marco Chen, 16, is enrolled in the youth prevention track. His first session is Session 2.',ctx:'Jordan checks the role chart. Alicia is listed as DPP co-facilitator beginning Week 2. Jordan asks whether Alicia has facilitated a live group before. Alicia says no — but she has reviewed the full curriculum.',q:'Jordan acknowledges Alicia\'s content knowledge but presses the point about live facilitation. Which response best captures why this distinction matters in implementation planning?',
+    choices:[
+      {text:'Content knowledge and facilitation skill are related but distinct competencies — knowing a curriculum doesn\'t prepare someone for managing group dynamics, resistance, or real-time participant distress.',correct:true,feedback:'This is exactly the gap Jordan identifies. Alicia can explain DPP concepts accurately. What she hasn\'t done is read a room of twelve people mid-session when one participant becomes defensive.',takeaway:'Role assignments must account for the full competency required, not just content knowledge. Facilitation is a live skill developed through practice — it cannot be acquired by reading a manual.'},
+      {text:'Jordan is being unnecessarily cautious — if Alicia has reviewed the curriculum and feels prepared, the team should trust her professional judgment about her own readiness.',correct:false,consequence:'In Session 2, Alicia loses control of the group when a participant challenges the dietary guidance. Lucia reads the room and decides this isn\'t worth her time. She doesn\'t return for Session 3.',feedback:'Self-reported readiness is not the same as demonstrated competency. Jordan\'s concern is about a specific skill gap, not Alicia\'s overall capability.'},
+      {text:'The real solution is to simplify the early sessions so they require less facilitation skill — that way Alicia can lead effectively while she builds experience.',correct:false,consequence:'In Session 2, Alicia loses control of the group. Lucia reads the room and doesn\'t return for Session 3.',feedback:'Simplifying sessions to match a facilitator\'s current skill level changes the program to fit the staff rather than developing the staff to deliver the program.'}
+    ]},
+    q2:{bubble:'"I want to do a run-through before we go live. One practice session with the actual materials."',family:true,familyText:'Carmen\'s cohort starts in three weeks. She has already told Imani and Marco about the program.',ctx:'Jordan proposes building a full facilitation run-through into the timeline before the first live session. Marcus notes this adds a week to the prep schedule.',q:'Marcus suggests skipping the run-through since Alicia can learn by co-facilitating with Jordan present as backup. What is the strongest argument for keeping the run-through?',
+    choices:[
+      {text:'A run-through is required by DPP fidelity standards — skipping it puts the program out of compliance regardless of any other considerations.',correct:false,avery:'"Check your source before you cite it. A pre-launch run-through is best practice, not a written mandate. The argument doesn\'t need to be regulatory to be correct."',feedback:'Claiming regulatory necessity when it doesn\'t exist is a weak argument that collapses the moment someone checks the actual standard.'},
+      {text:'A run-through surfaces problems with materials, logistics, and facilitation gaps before participants are in the room — it protects the first session from being a learning experience at Carmen\'s expense.',correct:true,feedback:'The run-through isn\'t about Alicia\'s confidence — it\'s about quality control. Materials that look clear on paper often have gaps that only show up in real delivery.',takeaway:'Pre-launch testing protects participants from being the pilot cohort. A one-week delay for a proper practice session is a reasonable investment against the cost of a failed first session.'},
+      {text:'The run-through matters primarily because it gives Alicia a confidence boost — facilitation anxiety is the real barrier.',correct:false,avery:'"Confidence is a byproduct, not the goal. Build the run-through for quality, not morale."',feedback:'Framing the run-through as confidence-building misidentifies its purpose. The value is diagnostic — it surfaces real gaps before Carmen\'s cohort walks in.'}
+    ]}
+  },
+  nova:{color:'#CF95C7',bgDark:'#261a26',audioKey:'nova',
+    intro:{role:'Dental Hygienist · RDH',text:'I\'ve been reading the implementation plan. Three activities collect personal health information — the intake screening, the biometric check-ins, the nutrition logs. I don\'t see documented safeguards for any of them. Before anyone walks through that door, we need to fix that.'},
+    q1:{bubble:'"Three activities collect personal health data and none of them have documented safeguards."',family:true,familyText:'Marco Chen, 16, is participating in the youth biometric screening. His parents signed a general program consent form.',ctx:'Nova identifies three data collection activities — intake screening, biometric check-ins, and nutrition logs — with no documented informed consent process, data handling policy, or withdrawal procedure.',q:'Marcus responds that participants will sign a general program waiver at enrollment, which covers all program activities. Why is a general waiver insufficient for health data collection?',
+    choices:[
+      {text:'A general enrollment waiver covers participation broadly — adding separate data consent processes creates administrative burden that could reduce enrollment.',correct:false,consequence:'Marco\'s biometric data is stored in a shared file without access controls. When a staff member sends the file to the wrong address, the family has no recourse because no data handling policy was ever documented.',feedback:'Administrative simplicity is a real concern, but it doesn\'t override the need for transparent data practices. A general waiver doesn\'t inform participants about what health data is collected, how it is used, how long it is retained, or what happens after withdrawal.'},
+      {text:'For health data collection, participants should be specifically informed about what data is collected, how it will be used, retained, and protected, and how it will be handled following withdrawal — consistent with applicable law and organizational policy.',correct:true,feedback:'This is the distinction Nova is drawing. Participation consent and data collection transparency address different things. Marco\'s family agreed to a program — not to their child\'s biometric data being stored without a documented handling policy.',takeaway:'Data collection safeguards must be explicit and documented before the first intake form is signed. Participants deserve to know what is collected, how it is protected, and what their options are if they choose to leave the program.'},
+      {text:'This level of documentation is only required when the program is federally funded — since this is a community initiative, the standard waiver is sufficient.',correct:false,consequence:'Marco\'s biometric data is stored without access controls. The family has no recourse when a breach occurs.',feedback:'Ethical obligations around health data transparency aren\'t contingent on funding source. Regardless of regulatory applicability, participants deserve clear information about how their health data is handled — and Bridgewell\'s organizational policy should reflect that standard.'}
+    ]},
+    q2:{bubble:'"If participants don\'t know what happens to their data when they leave, withdrawal isn\'t truly voluntary."',family:true,familyText:'Imani Washington, 24, is considering joining the young adult track. She has had negative past experiences with health providers who were not transparent about data collection.',ctx:'The team agrees to add data safeguards. Nova raises a second issue: there is no documented procedure for what happens to data already collected if a participant withdraws from the program.',q:'The team considers three approaches to data handling after withdrawal. Which best balances transparency and participant dignity with program evaluation needs?',
+    choices:[
+      {text:'Participants who withdraw forfeit their data — the program needs complete datasets for evaluation and partial records create methodological problems.',correct:false,avery:'"You\'ve just made withdrawal costly. If leaving means losing clarity about what happens to your health data, you\'ve added a reason to stay that has nothing to do with program value. Participants deserve to know their options."',feedback:'Protecting dataset completeness cannot come at the expense of transparency. Participants should understand what happens to their data if they leave — that knowledge is part of what makes their original consent meaningful.'},
+      {text:'Participants should be informed upfront about how identifiable data will be retained, protected, and handled following withdrawal, consistent with applicable law and organizational policy — with a documented procedure in place before enrollment begins.',correct:true,feedback:'This approach is transparent and practical. Imani can make an informed decision about enrolling because she knows exactly how her data will be handled — including if she decides to leave. The procedure exists before anyone signs anything.',takeaway:'A meaningful data handling policy tells participants what will happen to their information — before they enroll, not after they ask. Transparency at the start protects both participants and the program.'},
+      {text:'The simplest approach is to anonymize all data at collection — if nothing is identifiable from the start, withdrawal becomes a non-issue.',correct:false,avery:'"Full anonymization solves the withdrawal problem by eliminating individual tracking — which also eliminates your ability to follow up with DeShawn when he misses three sessions in a row."',feedback:'Full anonymization at collection has significant operational costs. Programs that need to track individual progress, send session reminders, or conduct follow-up cannot do that with fully anonymous data.'}
+    ]}
+  },
+  elena:{color:'#B3A2C7',bgDark:'#1e1a26',audioKey:'elena',
+    intro:{role:'Respiratory Therapist',text:'The respiratory component is listed as educational materials. A pamphlet at intake. That\'s it. DeShawn was diagnosed with asthma last year and has had zero structured follow-up since. If we hand him a brochure and call it a clinical touchpoint, we\'re not helping him — we\'re documenting that we tried.'},
+    q1:{bubble:'"The respiratory component is listed as educational materials. That\'s not the same as a clinical touchpoint."',family:true,familyText:'DeShawn was diagnosed with mild asthma last year and has had no structured respiratory follow-up since his initial diagnosis.',ctx:'Elena reviews the respiratory care component. It currently consists of distributing educational pamphlets on breathing health and smoking cessation at intake. There is no structured follow-up, no individual assessment, and no connection to the DPP sessions.',q:'Elena flags that educational materials alone are not a clinical touchpoint. What is the most accurate description of why this matters for implementing an effective respiratory component?',
+    choices:[
+      {text:'DeShawn received educational materials at his asthma diagnosis last year and they didn\'t produce behavior change — there is no reason to expect different results from the same approach.',correct:false,feedback:'This reasoning is directionally right but draws a conclusion from a single case. The broader problem is that passive information delivery is insufficient for behavior change regardless of setting or individual history.'},
+      {text:'Passive educational materials deliver information but create no mechanism for behavior change — without structured follow-up, individual assessment, and goal-setting, the component cannot produce the outcomes the plan promises.',correct:true,feedback:'This is the gap Elena identifies. Distributing a pamphlet creates no feedback loop, no accountability, and no connection to DeShawn\'s specific situation post-diagnosis. The plan promises respiratory health improvement but doesn\'t build the conditions for it.',takeaway:'Every component of an implementation plan must be matched to its intended outcome. If the plan promises respiratory health improvement, the activities must actively create the conditions for that improvement — not just deliver information and assume the rest follows.'},
+      {text:'The real issue is that Elena\'s scope of practice doesn\'t include DPP sessions — the respiratory component should be a separate program.',correct:false,feedback:'Scope of practice is not what Elena is raising. Interprofessional programs deliberately integrate multiple clinical perspectives. The problem is the design of the component, not its presence in the program.'}
+    ]},
+    q2:{bubble:'"If respiratory health is a program outcome, we need at least one structured touchpoint that creates a real opportunity for change."',family:true,familyText:'DeShawn hasn\'t mentioned his asthma to anyone on the Bridgewell team. He doesn\'t think it\'s relevant to a diabetes prevention program.',ctx:'The team agrees the respiratory component needs redesign. Elena proposes a structured respiratory assessment at intake and at least one follow-up session. Marcus pushes back — adding clinical touchpoints extends the timeline and increases staff burden.',q:'Marcus argues that adding structured respiratory touchpoints is scope creep that could compromise the DPP\'s focus. What is the strongest response to this concern?',
+    choices:[
+      {text:'Elena should scale back to a brief screening question at intake — this adds minimal burden while still creating a documented touchpoint.',correct:false,avery:'"A single screening question creates a record, not a touchpoint. If DeShawn answers yes to a respiratory symptom question and nothing happens next, you\'ve documented a gap you failed to address. Only add screening if you\'re prepared to act on what it finds."',feedback:'Minimal documentation without follow-up capacity is worse than no screening — it creates liability without delivering care.'},
+      {text:'Respiratory health and metabolic health are clinically linked — integrating both within the DPP is interprofessional design, not scope creep, and a structured intake assessment would surface clinical information the team doesn\'t currently have about DeShawn.',correct:true,feedback:'Since respiratory health directly affects exercise capacity and metabolic outcomes central to DPP goals, Elena\'s touchpoints are clinically integrated additions. DeShawn\'s unshared asthma history is exactly the kind of gap a structured intake assessment would surface.',takeaway:'Interprofessional implementation is not scope creep when the clinical domains are connected. A respiratory touchpoint in a metabolic health program is integration — and integration is what this team exists to provide.'},
+      {text:'The DPP core curriculum should be followed as designed — adding touchpoints not in the original model risks the program\'s fidelity standing.',correct:false,avery:'"DPP fidelity focuses on behavioral coaching dose and session structure. It doesn\'t prohibit integrating additional clinical assessments — it requires that the core not be displaced. Elena\'s touchpoints don\'t displace anything."',feedback:'Citing fidelity as a barrier to integration misreads what fidelity protects. Adding a respiratory assessment at intake doesn\'t touch the DPP behavioral core.'}
+    ]}
+  },
+  alicia:{color:'#F79646',bgDark:'#261808',audioKey:'alicia',
+    intro:{role:'PTA · Co-Facilitator',text:'I know this curriculum. I\'ve read every session guide twice. But Jordan just asked me if I\'ve ever facilitated a live DPP group and the honest answer is no. I know the material. I don\'t know yet what it feels like when the room doesn\'t go the way the guide says it should.'},
+    q1:{bubble:'"I know this curriculum. I\'ve read every session guide twice. I just haven\'t done it in front of a group yet."',family:true,familyText:'Carmen\'s cohort includes three participants who have been through failed wellness programs before. They will read Alicia\'s confidence level within the first ten minutes.',ctx:'Alicia is listed as DPP co-facilitator beginning Week 2. When Jordan asks about her live facilitation experience, she\'s honest: she has none. She believes co-facilitating with Jordan as backup is sufficient preparation.',q:'What does Alicia\'s assumption underestimate about the difference between content knowledge and live facilitation readiness?',
+    choices:[
+      {text:'Jordan\'s presence as backup means Alicia has a safety net — if something goes wrong, Jordan can step in, making the risk of going in without a formal run-through acceptable.',correct:false,consequence:'Carmen\'s experienced participants notice Alicia\'s hesitation when a question catches her off-guard. Two of them exchange a look. One stops contributing to group discussion for the rest of the session.',feedback:'A backup is not a substitute for preparation. Jordan stepping in mid-session signals to participants that the lead facilitator wasn\'t ready — which damages trust before the program has a chance to build it.'},
+      {text:'Live facilitation requires managing group dynamics, handling unexpected participant responses, and maintaining session flow simultaneously — skills that develop through practice, not content review alone.',correct:true,feedback:'Alicia can explain DPP concepts accurately. What she hasn\'t practiced is executing a session plan while reading twelve people\'s engagement levels, responding to off-topic comments without losing momentum, and holding the group through a moment of participant resistance.',takeaway:'Content knowledge is the floor, not the ceiling, of facilitation readiness. Live group delivery is a distinct skill set that requires practice — not because Alicia isn\'t capable, but because capability develops through doing, not reading.'},
+      {text:'Alicia\'s physical therapy background gives her interpersonal and coaching skills that transfer directly to DPP facilitation — the gap Jordan is concerned about may not be significant.',correct:false,consequence:'Carmen\'s experienced participants notice Alicia\'s hesitation. One stops contributing to group discussion for the rest of the session.',feedback:'Transferable skills are real — but transfer isn\'t automatic. PT coaching is one-to-one; DPP facilitation is group-based with specific behavioral coaching techniques that require practiced group management.'}
+    ]},
+    q2:{bubble:'"I want to be ready when I take lead at Session 5. What does ready actually look like?"',family:true,familyText:'By Session 4, Carmen has told two friends about the program. The program\'s reputation is being built by what happens in these early sessions.',ctx:'The team sets Session 5 as Alicia\'s lead facilitation start. Alicia asks what the transition criteria should be — what does ready mean, and who decides?',q:'The team needs to define "ready to lead" before Session 5. Which approach creates the clearest and most defensible transition criteria?',
+    choices:[
+      {text:'Jordan observes Alicia co-facilitating sessions 1-4 and makes a professional judgment call — experienced facilitators can assess readiness accurately without formal criteria.',correct:false,avery:'"Professional judgment without documented criteria puts Alicia in an impossible position. If Jordan decides she\'s not ready at Session 4, what does Alicia do with that? Subjective assessment without a shared framework isn\'t mentorship — it\'s ambiguity."',feedback:'Experienced judgment is valuable — but it needs to be expressed through criteria that Alicia can prepare for and respond to. Without shared criteria, "not ready" is a conclusion without a map for how to get there.'},
+      {text:'Define specific observable criteria — session pacing, participant engagement, handling of at least one unexpected question, smooth delivery of goal-setting — assessed by Jordan across sessions 2-4 with documented feedback after each.',correct:true,feedback:'This gives Alicia concrete targets to develop toward, gives Jordan a structured observation framework, and creates a documented record of the transition decision.',takeaway:'Readiness criteria protect everyone — the staff member developing the skill, the mentor making the assessment, and the participants who need a prepared facilitator. Observable, documented criteria replace subjective judgment with a shared framework Alicia can actually use.'},
+      {text:'Alicia should self-assess her readiness after Session 4 and make the call herself — she has the most direct knowledge of her own confidence and skill development.',correct:false,avery:'"Self-assessment is one data point, not the decision. Alicia\'s confidence tells you how she feels. Jordan\'s structured observation tells you what actually happened in the room. You need both."',feedback:'Confidence and competence don\'t always align. Jordan\'s structured observation adds the external perspective that self-assessment alone can\'t provide.'}
+    ]}
+  }
+};
+
+const audios={};
+let currentChar=null, completed={}, q1Wrong=0, q2Wrong=0;
+
+function getAudio(key){
+  if(!audios[key]){
+    const url=key==='char_intro'?AUDIO_URLS[currentChar]:AUDIO_URLS[key];
+    if(!url)return null;
+    const a=new Audio();
+    audios[key]=a;
+    a.addEventListener('timeupdate',()=>updateAudioProgress(key,a));
+    a.addEventListener('ended',()=>{
+      const btn=key==='char_intro'?document.getElementById('ci-play-btn'):document.getElementById('btn-'+key);
+      if(btn)btn.textContent='▶';
+    });
+    a.addEventListener('error',()=>showAudioError(key));
+    a.src=url;
+  }
+  return audios[key];
+}
+
+function showAudioError(key){
+  const errId=key==='char_intro'?'err-char_intro':`err-${key}`;
+  const errEl=document.getElementById(errId);
+  if(errEl)errEl.style.display='block';
+  const btn=key==='char_intro'?document.getElementById('ci-play-btn'):document.getElementById('btn-'+key);
+  if(btn){btn.textContent='✕';btn.disabled=true;}
+}
+
+// Reset a play button to its idle state (used when autoplay is blocked by the browser —
+// that is NOT an audio failure, so we must not show the error state).
+function resetPlayButton(key){
+  const btn=key==='char_intro'?document.getElementById('ci-play-btn'):document.getElementById('btn-'+key);
+  if(btn)btn.textContent='▶';
+}
+
+// Single-owner audio: only one key may be playing at a time. activeKey is the
+// intended owner; any play() promise that resolves after ownership changed is
+// immediately paused, which kills the autoplay/navigation race that let clips overlap.
+let activeKey=null;
+
+function btnFor(key){
+  return key==='char_intro'?document.getElementById('ci-play-btn'):document.getElementById('btn-'+key);
+}
+
+function playKey(key){
+  // Stop whatever is playing and claim ownership BEFORE awaiting play().
+  stopAllAudio('');
+  const a=getAudio(key);if(!a)return;
+  activeKey=key;
+  a.play().then(()=>{
+    if(activeKey!==key){a.pause();return;}   // ownership changed mid-await → bail
+    const b=btnFor(key);if(b)b.textContent='⏸';
+  }).catch(()=>{
+    if(activeKey===key)resetPlayButton(key);   // autoplay blocked, not a failure
+  });
+}
+
+function toggleAudio(key){
+  const a=getAudio(key);if(!a)return;
+  if(a.paused){
+    playKey(key);
+  } else {
+    a.pause();activeKey=null;
+    const b=btnFor(key);if(b)b.textContent='▶';
+  }
+}
+
+function stopAllAudio(except){
+  if(activeKey&&activeKey!==except)activeKey=null;
+  Object.keys(audios).forEach(k=>{
+    if(k!==except&&audios[k]&&!audios[k].paused){
+      audios[k].pause();
+      const btn=btnFor(k);
+      if(btn)btn.textContent='▶';
+    }
+  });
+}
+
+function updateAudioProgress(key,a){
+  if(!a.duration)return;
+  const pct=a.currentTime/a.duration*100;
+  const fillId=key==='char_intro'?'fill-char_intro':'fill-'+key;
+  const timeId=key==='char_intro'?'time-char_intro':'time-'+key;
+  const fill=document.getElementById(fillId);
+  const time=document.getElementById(timeId);
+  if(fill)fill.style.width=pct+'%';
+  if(time){const m=Math.floor(a.currentTime/60),s=Math.floor(a.currentTime%60).toString().padStart(2,'0');time.textContent=m+':'+s;}
+}
+
+function seekAudio(e,key){
+  const a=getAudio(key);if(!a||!a.duration)return;
+  const rect=e.currentTarget.getBoundingClientRect();
+  const pct=(e.clientX-rect.left)/rect.width;
+  a.currentTime=Math.max(0,Math.min(1,pct))*a.duration;
+}
+
+function toggleTranscript(id){
+  const el=document.getElementById(id);
+  const btn=document.querySelector(`[aria-controls="${id}"]`);
+  if(!el)return;
+  const open=el.style.display==='block';
+  el.style.display=open?'none':'block';
+  if(btn){btn.textContent=open?'Show transcript':'Hide transcript';btn.setAttribute('aria-expanded',!open);}
+}
+
+function announce(msg){
+  const r=document.getElementById('live-region');
+  if(r){r.textContent='';setTimeout(()=>r.textContent=msg,50);}
+}
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el=document.getElementById(id);
+  if(el){el.classList.add('active');const first=el.querySelector('button,[tabindex="0"]');if(first)setTimeout(()=>first.focus(),100);}
+}
+
+function showHub(){
+  stopAllAudio('');
+  updateHub();
+  show('screen-hub');
+  const all=['marcus','jordan','nova','elena','alicia'];
+  if(all.every(c=>completed[c])){setTimeout(()=>{show('screen-exit');announce('Simulation complete. All perspectives reviewed.');},400);}
+}
+
+function updateHub(){
+  const done=Object.keys(completed).length;
+  document.getElementById('prog').style.width=(done/5*100)+'%';
+  document.getElementById('prog-label').textContent=done+' of 5 perspectives completed';
+  ['marcus','jordan','nova','elena','alicia'].forEach(c=>{
+    const card=document.getElementById('card-'+c);
+    if(!card)return;
+    if(completed[c]){
+      card.classList.add('done');
+      card.setAttribute('tabindex','-1');
+      card.setAttribute('aria-disabled','true');
+      if(!card.querySelector('.done-badge')){const b=document.createElement('div');b.className='done-badge';b.textContent='✓';b.setAttribute('aria-hidden','true');card.appendChild(b);}
+    }
+  });
+}
+
+function confirmReset(){
+  // confirm() is suppressed inside sandboxed embeds/LMS frames, so reset directly.
+  resetSim();
+}
+
+function resetSim(){
+  completed={};q1Wrong=0;q2Wrong=0;activeKey=null;
+  Object.keys(audios).forEach(k=>{audios[k].pause();audios[k].currentTime=0;const b=btnFor(k);if(b)b.textContent='▶';});
+  ['marcus','jordan','nova','elena','alicia'].forEach(c=>{
+    const card=document.getElementById('card-'+c);
+    if(card){card.classList.remove('done');card.setAttribute('tabindex','0');card.removeAttribute('aria-disabled');const b=card.querySelector('.done-badge');if(b)b.remove();}
+  });
+  document.getElementById('prog').style.width='0%';
+  document.getElementById('prog-label').textContent='0 of 5 perspectives completed';
+  show('screen-intro');
+  announce('Simulation reset. Starting over.');
+}
+
+function startChar(name){
+  if(completed[name])return;
+  currentChar=name;q1Wrong=0;q2Wrong=0;
+  if(audios['char_intro']){audios['char_intro'].pause();audios['char_intro'].currentTime=0;delete audios['char_intro'];}
+  const d=CHARS[name];
+  const panel=document.getElementById('ci-color-panel');
+  panel.style.background=d.bgDark;
+  const portrait=document.getElementById('ci-portrait');
+  portrait.src=PORTRAITS[name];portrait.alt=name.charAt(0).toUpperCase()+name.slice(1);
+  portrait.style.display='block';
+  document.getElementById('ci-portrait-ph').style.display='none';
+  document.getElementById('ci-portrait-ph').textContent=name.slice(0,2).toUpperCase();
+  document.getElementById('ci-name-large').textContent=name.charAt(0).toUpperCase()+name.slice(1);
+  document.getElementById('ci-role-large').textContent=d.intro.role;
+  document.getElementById('ci-bar').style.borderColor=d.color;
+  document.getElementById('ci-play-btn').style.background=d.color;
+  document.getElementById('fill-char_intro').style.background=d.color;
+  document.getElementById('ci-play-btn').textContent='▶';
+  document.getElementById('ci-play-btn').disabled=false;
+  document.getElementById('fill-char_intro').style.width='0%';
+  document.getElementById('time-char_intro').textContent='0:00';
+  document.getElementById('err-char_intro').style.display='none';
+  document.getElementById('ci-role-label').textContent=d.intro.role;
+  document.getElementById('ci-intro-text').textContent=d.intro.text;
+  document.getElementById('tr-char').textContent=TRANSCRIPTS[name]||'';
+  document.getElementById('tr-char').style.display='none';
+  const tcBtn=document.getElementById('ci-transcript-btn');
+  if(tcBtn){tcBtn.textContent='Show transcript';tcBtn.setAttribute('aria-expanded','false');}
+  show('screen-char-intro');
+  announce(name.charAt(0).toUpperCase()+name.slice(1)+' — '+d.intro.role);
+}
+
+function goToQ1(){stopAllAudio('');renderQ1();show('screen-q1');announce('Question 1 of 2');}
+
+function playSceneVideo(vidEl,imgEl,src){
+  if(!vidEl)return;
+  vidEl.muted=true;vidEl.loop=true;vidEl.playsInline=true;
+  const fail=()=>{vidEl.style.display='none';if(imgEl){imgEl.src=SCENE_IMG;imgEl.style.display='block';}};
+  vidEl.onerror=fail;
+  vidEl.style.display='block';
+  const go=()=>vidEl.play().catch(()=>{});
+  if(SCENE_BLOB[src]){vidEl.src=SCENE_BLOB[src];vidEl.dataset.loadedSrc=src;go();return;}
+  // Load via fetch → blob URL so playback doesn't depend on server range support.
+  fetch(src).then(r=>{if(!r.ok)throw 0;return r.blob();}).then(b=>{
+    if(!SCENE_BLOB[src])SCENE_BLOB[src]=URL.createObjectURL(b);
+    vidEl.src=SCENE_BLOB[src];vidEl.dataset.loadedSrc=src;go();
+  }).catch(fail);
+}
+
+function setSceneImg(qNum,name,isColor){
+  const sceneEl=document.getElementById(`q${qNum}-scene-img`);
+  const vidEl=document.getElementById(`q${qNum}-scene-vid`);
+  const colorEl=document.getElementById(`q${qNum}-color-panel`);
+  const portEl=document.getElementById(`q${qNum}-portrait`);
+  const nameEl=document.getElementById(`q${qNum}-char-name`);
+  const d=CHARS[name];
+  const sc=isColor?{}:sceneFor(name,qNum);
+  const hasVid=!!sc.video;
+  const hasImg=!!sc.img;
+  if(hasVid){
+    playSceneVideo(vidEl,sceneEl,sc.video);
+    sceneEl.style.display='none';
+    if(colorEl)colorEl.style.display='none';
+  } else if(hasImg){
+    sceneEl.src=sc.img;sceneEl.style.display='block';sceneEl.style.objectPosition=sc.pos||'center';
+    if(vidEl){vidEl.pause();vidEl.style.display='none';}
+    if(colorEl)colorEl.style.display='none';
+  } else {
+    sceneEl.style.display='none';
+    if(vidEl){vidEl.pause();vidEl.style.display='none';}
+    if(colorEl){colorEl.style.display='flex';colorEl.style.background=d.bgDark;}
+    if(portEl){portEl.src=PORTRAITS[name];portEl.alt=name;}
+    if(nameEl)nameEl.textContent=name.charAt(0).toUpperCase()+name.slice(1);
+  }
+  const fbSceneEl=document.getElementById(`fb${qNum}-scene-img`);
+  const fbVidEl=document.getElementById(`fb${qNum}-scene-vid`);
+  const fbColorEl=document.getElementById(`fb${qNum}-color`);
+  const fbPortEl=document.getElementById(`fb${qNum}-portrait`);
+  if(hasVid){
+    playSceneVideo(fbVidEl,fbSceneEl,sc.video);
+    if(fbSceneEl)fbSceneEl.style.display='none';
+    if(fbColorEl)fbColorEl.style.display='none';
+  } else if(hasImg){
+    if(fbSceneEl){fbSceneEl.src=sc.img;fbSceneEl.style.display='block';fbSceneEl.style.objectPosition=sc.pos||'center';}
+    if(fbVidEl){fbVidEl.pause();fbVidEl.style.display='none';}
+    if(fbColorEl)fbColorEl.style.display='none';
+  } else {
+    if(fbSceneEl)fbSceneEl.style.display='none';
+    if(fbVidEl){fbVidEl.pause();fbVidEl.style.display='none';}
+    if(fbColorEl){fbColorEl.style.display='flex';fbColorEl.style.background=d.bgDark;}
+    if(fbPortEl){fbPortEl.src=PORTRAITS[name];fbPortEl.alt=name;}
+  }
+}
+
+function renderQ1(){
+  const d=CHARS[currentChar].q1;
+  setSceneImg(1,currentChar,false);
+  document.getElementById('q1-bubble').textContent=d.bubble;
+  document.getElementById('q1-ctx').textContent=d.ctx;
+  document.getElementById('q1-text').textContent=d.q;
+  const fam=document.getElementById('q1-family');
+  if(d.family){fam.style.display='block';document.getElementById('q1-family-text').textContent=d.familyText;}
+  else fam.style.display='none';
+  renderChoices('q1-choices',d.choices,handleQ1);
+}
+
+function renderQ2(){
+  const d=CHARS[currentChar].q2;
+  setSceneImg(2,currentChar,false);
+  document.getElementById('q2-bubble').textContent=d.bubble;
+  document.getElementById('q2-ctx').textContent=d.ctx;
+  document.getElementById('q2-text').textContent=d.q;
+  const fam=document.getElementById('q2-family');
+  if(d.family){fam.style.display='block';document.getElementById('q2-family-text').textContent=d.familyText;}
+  else fam.style.display='none';
+  renderChoices('q2-choices',d.choices,handleQ2);
+}
+
+function renderChoices(id,choices,handler){
+  const el=document.getElementById(id);el.innerHTML='';
+  choices.forEach((ch,i)=>{
+    const btn=document.createElement('button');
+    btn.className='choice-btn';
+    btn.setAttribute('aria-label','Option '+(i+1)+': '+ch.text);
+    btn.innerHTML='<div class="cbullet" aria-hidden="true"></div><span class="ctext">'+ch.text+'</span>';
+    btn.onclick=()=>{
+      [...el.querySelectorAll('.choice-btn')].forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+      setTimeout(()=>handler(ch),220);   // show the selected state briefly, then reveal feedback
+    };
+    el.appendChild(btn);
+  });
+}
+
+function handleQ1(ch){
+  const chosen=document.getElementById('fb1-chosen');
+  chosen.textContent=ch.text;
+  chosen.classList.toggle('correct',!!ch.correct);
+  chosen.classList.toggle('wrong',!ch.correct);
+  document.getElementById('fb1-text').textContent=ch.feedback;
+  const conseq=document.getElementById('fb1-consequence');
+  const averyEl=document.getElementById('fb1-avery');
+  const takeEl=document.getElementById('fb1-takeaway');
+  const actions=document.getElementById('fb1-actions');
+  conseq.style.display='none';averyEl.style.display='none';takeEl.style.display='none';actions.innerHTML='';
+  if(ch.correct){
+    takeEl.textContent=ch.takeaway||'';takeEl.style.display='block';
+    addBtn(actions,'Continue to Question 2 →',()=>{renderQ2();show('screen-q2');announce('Question 2 of 2');});
+    addBtn(actions,'Return to team hub',showHub);
+    announce('Correct. '+ch.feedback);
+  } else {
+    q1Wrong++;
+    if(ch.consequence){conseq.style.display='block';document.getElementById('fb1-consequence-text').textContent=ch.consequence;}
+    if(q1Wrong>=2&&ch.avery){averyEl.style.display='block';document.getElementById('fb1-avery-text').textContent=ch.avery;}
+    addBtn(actions,'Try again',()=>{renderQ1();show('screen-q1');});
+    addBtn(actions,'Skip to Question 2',()=>{renderQ2();show('screen-q2');announce('Question 2 of 2');});
+    addBtn(actions,'Return to team hub',showHub);
+    announce('Not quite. '+ch.feedback);
+  }
+  show('screen-fb1');
+}
+
+function handleQ2(ch){
+  const chosen=document.getElementById('fb2-chosen');
+  chosen.textContent=ch.text;
+  chosen.classList.toggle('correct',!!ch.correct);
+  chosen.classList.toggle('wrong',!ch.correct);
+  document.getElementById('fb2-text').textContent=ch.feedback;
+  const conseq=document.getElementById('fb2-consequence');
+  const averyEl=document.getElementById('fb2-avery');
+  const takeEl=document.getElementById('fb2-takeaway');
+  const actions=document.getElementById('fb2-actions');
+  conseq.style.display='none';averyEl.style.display='none';takeEl.style.display='none';actions.innerHTML='';
+  if(ch.correct){
+    takeEl.textContent=ch.takeaway||'';takeEl.style.display='block';
+    completed[currentChar]=true;updateHub();
+    addBtn(actions,'Return to team hub',showHub);
+    announce('Correct. '+ch.feedback+' Perspective complete.');
+  } else {
+    q2Wrong++;
+    if(ch.consequence){conseq.style.display='block';document.getElementById('fb2-consequence-text').textContent=ch.consequence;}
+    if(q2Wrong>=2&&ch.avery){averyEl.style.display='block';document.getElementById('fb2-avery-text').textContent=ch.avery;}
+    addBtn(actions,'Try again',()=>{renderQ2();show('screen-q2');});
+    addBtn(actions,'Return to team hub',showHub);
+    announce('Not quite. '+ch.feedback);
+  }
+  show('screen-fb2');
+}
+
+function addBtn(container,label,fn){
+  const btn=document.createElement('button');
+  btn.className='fb-btn';
+  btn.innerHTML='<div class="fbullet" aria-hidden="true"></div><span class="fb-btn-text">'+label+'</span>';
+  btn.onclick=fn;container.appendChild(btn);
+}
+
+// No autoplay on load: narration starts only when the learner presses play.
+// (Auto-playing on load causes overlapping "echo" when the page is open in more
+//  than one place, and browsers block autoplay-with-sound anyway.)
+</script>
+</body>
+</html>
